@@ -26,11 +26,14 @@
 
 3. RUN DETECTOR
    
-   Option A - Auto detect & run:
-   ./wait-and-detect.sh
+   Option A - Auto tunggu USB kemudian detect:
+   ./detect-board.sh --wait
    
-   Option B - Manual run:
+   Option B - Manual (ESP32 sudah disambung):
    ./detect-board.sh
+
+   Option C - Menu I2C / GPIO / detector:
+   ./detect-board.sh scan
 
 ═══════════════════════════════════════════════════════════
 
@@ -130,20 +133,20 @@ Tiada device detected?
 
 📚 FILES REFERENCE:
 
-Scripts:
-  • detect-board.sh        - Main detector script
-  • wait-and-detect.sh     - Auto-wait for ESP32
+Scripts (root projek):
+  • detect-board.sh        - Detector / --wait / scan (menu)
   • upload.sh              - Upload helper
 
-Scanners:
+Scanners (dipanggil oleh detect-board.sh scan):
   • test/i2c_scanner.cpp      - I2C only
   • test/gpio_scanner.cpp     - GPIO only
   • test/board_detector.cpp   - Complete scan
 
 Docs:
   • docs/DETECT-BOARD.md   - Full documentation
-  • QUICK-START.md         - Quick guide
-  • README.md              - Project info
+  • docs/DETECT-ESP32.txt  - Fail ini (ringkasan pantas)
+  • ../QUICK-START.md      - Quick guide
+  • ../README.md           - Project info
 
 ═══════════════════════════════════════════════════════════
 
@@ -153,10 +156,13 @@ Docs:
 ls /dev/cu.*
 
 # Wait for ESP32 then auto-detect
-./wait-and-detect.sh
+./detect-board.sh --wait
 
 # Detect immediately (ESP32 must be connected)
 ./detect-board.sh
+
+# Menu scanner I2C / GPIO / detector
+./detect-board.sh scan
 
 # Manual I2C scan
 cp test/i2c_scanner.cpp src/main.cpp
@@ -165,5 +171,5 @@ pio run -t upload -t monitor
 ═══════════════════════════════════════════════════════════
 
 Sila sambung ESP32 dan jalankan:
-./wait-and-detect.sh
+./detect-board.sh --wait
 

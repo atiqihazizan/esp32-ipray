@@ -93,7 +93,8 @@ Disconnect USB or power supply.
 # Power on ESP32
 # Check serial monitor
 cd ~/IoT/esp32-ipray
-./check-serial.sh
+./upload.sh
+# Pilih 5 (Monitor sahaja) atau: pio device monitor
 ```
 
 ---
@@ -245,8 +246,9 @@ GPIO25/26 are safe general-purpose pins that don't have these issues.
 cd ~/IoT/esp32-ipray
 ./upload.sh
 
-# Check serial monitor
-./check-serial.sh
+# Serial monitor
+./upload.sh
+# Pilih 5, atau: pio device monitor
 
 # If need to change pins again, edit:
 nano include/config.h

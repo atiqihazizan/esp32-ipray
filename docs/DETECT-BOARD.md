@@ -10,7 +10,13 @@ Panduan untuk detect extend board/shield yang disambung ke ESP32.
 ./detect-board.sh
 ```
 
-Script ini akan:
+Pilihan lain:
+
+- `./detect-board.sh --wait` — tunggu port USB, kemas kini `upload_port` dalam `platformio.ini`, lalu jalankan detector.
+- `./detect-board.sh scan` — menu untuk I2C scanner, GPIO scanner, atau board detector sahaja.
+- Rujukan ringkas: `docs/DETECT-ESP32.txt`
+
+Script utama akan:
 1. Backup kod semasa
 2. Upload board detector
 3. Scan semua devices
