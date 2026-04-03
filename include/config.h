@@ -37,17 +37,20 @@
 // 0 = UART tanpa ACK (sesetengah modul lebih stabil); 1 = dengan ACK
 #define DFPLAYER_USE_ACK     0
 
-/** ROOT play(n): 1=azan 2=warning 3/4=music (:00 & :15 — :15 trek lain daripada :00 sejam) */
-#define TRACK_SD_AZAN     1
-#define TRACK_SD_WARNING  2
-#define TRACK_SD_MUSIC_A  3
-#define TRACK_SD_MUSIC_B  4
+/** ROOT play(n) — fail di punca SD: 001.mp3 … 006.mp3 */
+#define TRACK_SD_BEEP        1  // beep (startup, layout, dll. — bukan masuk waktu)
+#define TRACK_SD_NOTIFY      2  // notify (30s sebelum solat)
+#define TRACK_SD_SHORT_A     3  // muzik pendek — Jamal Al Wujood (:15 rawak)
+#define TRACK_SD_SHORT_B     4  // muzik pendek — Qalbil Fil Madina (:15 rawak)
+#define TRACK_SD_AZAN        5  // azan — hanya bila masuk waktu solat
+#define TRACK_SD_FULL_MUSIC  6  // muzik penuh — Jamal Al Wujood (setiap :00)
+
 /** Bilangan main trek azan bila masuk waktu solat */
 #define AZAN_PLAY_COUNT   5
 
-// Buzz + DFPlayer berkala (ms); 0 = matikan — trek muzik jika DFPlayer dihidupkan semula
+// Buzz + DFPlayer berkala (ms); 0 = matikan — rujukan trek jika diperlukan
 #define PLAY_SOUND_INTERVAL_MS    3000
-#define PLAY_SOUND_INTERVAL_TRACK TRACK_SD_MUSIC_B
+#define PLAY_SOUND_INTERVAL_TRACK TRACK_SD_BEEP
 
 extern Adafruit_SSD1306 display;
 // extern RTC_DS1307 rtc;

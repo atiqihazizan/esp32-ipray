@@ -6,6 +6,7 @@
 #include <time.h>
 #include <pgmspace.h>
 #include <string.h>
+#include <esp_random.h>
 
 int rightToLen(const char* strText, int charW, int padRight) {
   return 128 - ((int)strlen(strText) * charW) - padRight;
@@ -100,6 +101,8 @@ void syncRTCwithNTP() {
 
 // ─── Input / solat semula ───────────────────────────────
 
+static bool currentMinuteMatchesAnySolat(const DateTime& now);
+
 void handleButtons(){
   if (digitalRead(BTN_MENU) == LOW) {
     delay(200);
@@ -145,7 +148,7 @@ void handleButtons(){
       }
 
       if (dfPlayerReady && !currentMinuteMatchesAnySolat(rtc.now()))
-        playSound(TRACK_SD_MUSIC_B, 100);
+        playSound(TRACK_SD_BEEP, 100);
       Serial.printf("[layout] switched to layout %d\n", displayLayout);
     }
   }
@@ -168,8 +171,8 @@ void handleSolatRetry(){
 }
 
 // ─── Kipas masa / audio solat ─────────────────────────
-// SD ROOT: 001 azan, 002 warning, 003/004 music pada :00 dan :15 (trek berbeza dalam sejam).
-// Pada minit mana-mana waktu solat: DFPlayer hanya main trek azan (tiada muzik :00/:15 & bunyi layout).
+// SD ROOT: 1=beep 2=notify 3/4=short 5=azan 6=full — :00→6, :15→rawak 3/4; masuk waktu→5 sahaja.
+// Pada minit waktu solat: tiada :00/:15/layout; hanya azan.
 
 static int           lastWarnIdx    = -1;
 static int           lastAzanIdx    = -1;
@@ -222,9 +225,9 @@ void handleBuzzer() {
       if (lastWarnIdx != i) {
         lastWarnIdx = i;
         if (dfPlayerReady) {
-          playSound(TRACK_SD_WARNING, 0); delay(500);
-          playSound(TRACK_SD_WARNING, 0); delay(500);
-          playSound(TRACK_SD_WARNING, 0);
+          playSound(TRACK_SD_NOTIFY, 0); delay(500);
+          playSound(TRACK_SD_NOTIFY, 0); delay(500);
+          playSound(TRACK_SD_NOTIFY, 0);
         }
         Serial.printf("[sound] warning 30s: %s\n", times[i]);
       }
@@ -249,17 +252,15 @@ void handleBuzzer() {
     }
   }
 
-  /* Muzik pada :00 / :15 — jangan main jika minit ini waktu solat (hanya azan dibenarkan) */
+  /* Setiap jam :00 → trek 6 (full); :15 → rawak trek 3 atau 4 (pendek) */
   if (!solatMinute && now.second() <= 2 && (now.minute() == 0 || now.minute() == 15)) {
     int tick = now.hour() * 60 + now.minute();
     if (lastMusicTick != tick) {
       lastMusicTick = tick;
-      int atHourStart =
-          ((now.hour() % 2) == 0) ? TRACK_SD_MUSIC_A : TRACK_SD_MUSIC_B;
       int tr = (now.minute() == 0)
-                   ? atHourStart
-                   : ((atHourStart == TRACK_SD_MUSIC_A) ? TRACK_SD_MUSIC_B
-                                                        : TRACK_SD_MUSIC_A);
+                   ? TRACK_SD_FULL_MUSIC
+                   : (((esp_random() & 1U) != 0U) ? TRACK_SD_SHORT_A
+                                                  : TRACK_SD_SHORT_B);
       if (dfPlayerReady)
         playSound(tr, 400);
       Serial.printf("[sound] music %02d:%02d trek %d\n", now.hour(), now.minute(), tr);

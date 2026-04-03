@@ -172,7 +172,7 @@ void setup() {
   buzzTone(BUZZER_ALERT_HZ, BUZZER_ALERT_MS);
 
   if (dfPlayerReady)
-    playSound(TRACK_SD_AZAN, 600);
+    playSound(TRACK_SD_BEEP, 600);
 
   Serial.println("[setup] selesai");
 }

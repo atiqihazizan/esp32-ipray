@@ -71,7 +71,7 @@ Untuk setup DFPlayer Mini dengan SD card dan speaker, lihat:
 1. Wire ESP32 GPIO16/17 to DFPlayer RX/TX
 2. Connect speaker to DFPlayer SPK_1/SPK_2
 3. Format SD card to FAT32
-4. Create folder `mp3/` dan copy files: `001.mp3` - `004.mp3`
+4. Di punca kad SD (ROOT): `001.mp3`–`006.mp3` — beep, notify, short×2, azan, full (lihat `config.h`)
 5. Insert SD card dan upload code
 
 System akan auto fallback ke buzzer jika DFPlayer tidak ready.
