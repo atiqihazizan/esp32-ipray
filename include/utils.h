@@ -9,12 +9,18 @@ void syncRTCwithNTP();
 void initDfPlayer();
 
 void handleSolatRetry();
-void handleBlink();
 
-/** Ditakrif dalam utils.cpp — dipanggil dari sound.cpp / buttons.cpp */
+/** Arahan DFPlayer segera (tiada delay) — untuk app_fsm */
+void utilsDfPlayerSendStop();
+void utilsDfPlayerSendVolume(int v);
+void utilsDfPlayerSendPlayIndexed(int track);
+void utilsDfPlayerSendPlayFolder(uint8_t folder, uint8_t file);
+
+/** true = DFPlayer tidak main (ikut DFPLAYER_BUSY_* pada config.h) */
+bool utilsDfPlayerOutputIdle();
+
+/** Hantar ke baris gilir audio app_fsm (tidak berblok) */
 void playSound(int trackNumber, int delayMs = 0);
-
-/** DFPlayer: folder jam lalu folder minit — rujuk DFPLAYER_SPEAK_FOLDER_* dalam config.h */
 void speakTime(int hours, int minutes);
 
 int rightToLen(const char *strText, int charW = 6, int padRight = 0);

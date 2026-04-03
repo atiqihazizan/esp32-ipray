@@ -2,6 +2,7 @@
 #include "secrets.h"
 #include "display.h"
 #include "utils.h"
+#include "app_fsm.h"
 #include "buttons.h"
 #include "sound.h"
 #include "solat.h"
@@ -40,6 +41,7 @@ int displayLayout = DISPLAY_LAYOUT;
 void setup() {
   Serial.begin(115200);
 
+  appFsmInit();
   initDfPlayer();
 
   pinMode(BTN_MENU, INPUT_PULLUP);
@@ -48,6 +50,7 @@ void setup() {
   pinMode(BTN_SET,  INPUT_PULLUP);
   pinMode(BTN_RET,  INPUT_PULLUP);
   pinMode(BTN_LAYOUT, INPUT_PULLUP);
+  pinMode(DFPLAYER_BUSY_PIN, INPUT_PULLUP);
 
   Wire.begin(21, 22);
 
@@ -57,10 +60,10 @@ void setup() {
   if (!rtc.begin())
     Serial.println("[rtc] not found");
 
-  showInitializing(1);
-  delay(300);
+  // showInitializing(1);
+  // delay(300);
   
-  showInitializing(2);
+  showInitializing(1);
   connectWiFi();
   
   showInitializing(3);
@@ -103,7 +106,6 @@ void setup() {
 void loop() {
   handleSolatRetry();
   handleButtons();
-  handleBlink();
 
   switch (currentState) {
     case HOME:       drawHome(displayLayout);           break;
@@ -119,6 +121,8 @@ void loop() {
   }
 
   handleSound();
+
+  appFsmUpdate();
 
   delay(100);
 }

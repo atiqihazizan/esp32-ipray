@@ -17,8 +17,15 @@
 
 // ─── DFPlayer Mini MP3-TF-16P ────────────────────────
 // New pins (alternative):
-#define DFPLAYER_RX     25  // ESP32 RX → DFPlayer TX
-#define DFPLAYER_TX     26  // ESP32 TX → DFPlayer RX
+#define DFPLAYER_RX       25  // ESP32 RX → DFPlayer TX
+#define DFPLAYER_TX       26  // ESP32 TX → DFPlayer RX
+#define DFPLAYER_BUSY_PIN 32  // ESP32 ← kaki BUSY modul (biasanya GPIO input + pull-up)
+
+/** 1 = pin LOW semasa main audio; 0 = HIGH semasa main (terbalik mengikut modul) */
+#define DFPLAYER_BUSY_ACTIVE_LOW  1
+
+/** Lepas hantar play, jangan anggap “siap” dalam tempoh ini (ms) — tepi UART */
+#define DFPLAYER_BUSY_IGNORE_MS   120
 
 // Main DFPlayer: tetap mode 1 — dfPlayer.play(n), fail MP3 di punca kad (ROOT), cth 001.mp3 / 0003.mp3
 #define DFPLAYER_PLAY_MODE   2
@@ -33,8 +40,9 @@
  */
 #define DFPLAYER_SPEAK_FOLDER_HOUR    1
 #define DFPLAYER_SPEAK_FOLDER_MINUTE  2
-#define SPEAK_TIME_MS_AFTER_HOUR      1000
-#define SPEAK_TIME_MS_AFTER_MINUTE    2000
+/** speakTime: tunggu BUSY idle; nilai ini = had masa maks jika pin tidak bertindak */
+#define SPEAK_TIME_MS_AFTER_HOUR      8000
+#define SPEAK_TIME_MS_AFTER_MINUTE    8000
 
 /** ROOT play(n) — fail di punca SD: 001.mp3 … 006.mp3 */
 #define TRACK_SD_BEEP        1  // beep (startup, layout, dll. — bukan masuk waktu)

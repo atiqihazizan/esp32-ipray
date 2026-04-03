@@ -1,4 +1,5 @@
 #include "sound.h"
+#include "app_fsm.h"
 #include "config.h"
 #include "solat.h"
 #include "utils.h"
@@ -104,11 +105,11 @@ void handleSound() {
       if (lastWarnIdx != i) {
         lastWarnIdx = i;
         if (dfPlayerReady) {
-          playSound(TRACK_SD_NOTIFY, 0);
-          delay(500);
-          playSound(TRACK_SD_NOTIFY, 0);
-          delay(500);
-          playSound(TRACK_SD_NOTIFY, 0);
+          appFsmAudioEnqueuePlay(TRACK_SD_NOTIFY, 0);
+          appFsmAudioEnqueueGap(500);
+          appFsmAudioEnqueuePlay(TRACK_SD_NOTIFY, 0);
+          appFsmAudioEnqueueGap(500);
+          appFsmAudioEnqueuePlay(TRACK_SD_NOTIFY, 0);
         }
         Serial.printf("[sound] warning 30s: %s\n", times[i]);
       }

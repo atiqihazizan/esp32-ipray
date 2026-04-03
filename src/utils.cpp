@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "app_fsm.h"
 #include "config.h"
 #include "secrets.h"
 #include "solat.h"
@@ -26,6 +27,30 @@ static void dfPlayerPlayOneMode(int trackNumber, int mode) {
 
 static void dfPlayerPlayIndexedTrack(int trackNumber) {
   dfPlayerPlayOneMode(trackNumber, DFPLAYER_PLAY_MODE);
+}
+
+void utilsDfPlayerSendStop() {
+  dfPlayer.stop();
+}
+
+void utilsDfPlayerSendVolume(int v) {
+  dfPlayer.volume((uint8_t)v);
+}
+
+void utilsDfPlayerSendPlayIndexed(int track) {
+  dfPlayerPlayIndexedTrack(track);
+}
+
+void utilsDfPlayerSendPlayFolder(uint8_t folder, uint8_t file) {
+  dfPlayer.playFolder(folder, file);
+}
+
+bool utilsDfPlayerOutputIdle() {
+#if DFPLAYER_BUSY_ACTIVE_LOW
+  return digitalRead(DFPLAYER_BUSY_PIN) == HIGH;
+#else
+  return digitalRead(DFPLAYER_BUSY_PIN) == LOW;
+#endif
 }
 
 void initDfPlayer() {
@@ -70,45 +95,15 @@ void initDfPlayer() {
 void playSound(int trackNumber, int delayMs) {
   if (!dfPlayerReady)
     return;
-  dfPlayer.stop();
-  delay(80);
-  dfPlayer.volume(30);
-  delay(50);
-  dfPlayerPlayIndexedTrack(trackNumber);
-  delay(200);
-  if (delayMs > 0)
-    delay(delayMs);
+  if (!appFsmAudioEnqueuePlay(trackNumber, delayMs))
+    Serial.println("[audio] baris gilir penuh — playSound diabaikan");
 }
 
 void speakTime(int hours, int minutes) {
   if (!dfPlayerReady)
     return;
-  if (hours < 0)
-    hours = 0;
-  else if (hours > 23)
-    hours = 23;
-  if (minutes < 0)
-    minutes = 0;
-  else if (minutes > 59)
-    minutes = 59;
-
-  /*
-   * Folder 01 jam: 001.mp3 … 012.mp3 (12j). RTC jam 00 & 12 → trek 12 (012.mp3).
-   * Folder 02 minit: 001.mp3 … 060.mp3. Minit 00 → 060.mp3 (indeks 60); lain 1–59.
-   */
-  int h12 = hours % 12;
-  if (h12 == 0)
-    h12 = 12;
-  const int minTrack = (minutes == 0) ? 60 : minutes;
-
-  dfPlayer.stop();
-  delay(80);
-  dfPlayer.volume(30);
-  delay(50);
-  dfPlayer.playFolder((uint8_t)DFPLAYER_SPEAK_FOLDER_HOUR, (uint8_t)h12);
-  delay(SPEAK_TIME_MS_AFTER_HOUR);
-  dfPlayer.playFolder((uint8_t)DFPLAYER_SPEAK_FOLDER_MINUTE, (uint8_t)minTrack);
-  delay(SPEAK_TIME_MS_AFTER_MINUTE);
+  if (!appFsmAudioEnqueueSpeakTime(hours, minutes))
+    Serial.println("[audio] baris gilir penuh — speakTime diabaikan");
 }
 
 int rightToLen(const char* strText, int charW, int padRight) {
@@ -217,13 +212,6 @@ void handleSolatRetry(){
   } else if (!solatLoaded && WiFi.status() != WL_CONNECTED) {
     Serial.println("[wifi] disconnected, reconnecting...");
     connectWiFi();
-  }
-}
-
-void handleBlink() {
-  if (millis() - lastBlinkTime >= 500UL) {
-    colonBlink    = !colonBlink;
-    lastBlinkTime = millis();
   }
 }
 
