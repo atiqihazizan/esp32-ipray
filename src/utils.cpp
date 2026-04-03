@@ -6,7 +6,110 @@
 #include <time.h>
 #include <pgmspace.h>
 #include <string.h>
-#include <esp_random.h>
+#include <DFRobotDFPlayerMini.h>
+#include <HardwareSerial.h>
+
+HardwareSerial     dfSerial(2);
+DFRobotDFPlayerMini dfPlayer;
+bool               dfPlayerReady       = false;
+bool               dfPlayerSdOk        = false;
+int                dfPlayerSdFileCount = -1;
+
+/** Satu arahan main: 0=mp3/ 1=ROOT 2=folder01 */
+static void dfPlayerPlayOneMode(int trackNumber, int mode) {
+  switch (mode) {
+    case 1: dfPlayer.play(trackNumber); break;
+    case 2: dfPlayer.playFolder(1, static_cast<uint8_t>(trackNumber)); break;
+    default: dfPlayer.playMp3Folder(trackNumber); break;
+  }
+}
+
+static void dfPlayerPlayIndexedTrack(int trackNumber) {
+  dfPlayerPlayOneMode(trackNumber, DFPLAYER_PLAY_MODE);
+}
+
+void initDfPlayer() {
+  dfSerial.begin(9600, SERIAL_8N1, DFPLAYER_RX, DFPLAYER_TX);
+  delay(500);
+
+#if DFPLAYER_USE_ACK
+  const bool dfUseAck = true;
+#else
+  const bool dfUseAck = false;
+#endif
+
+  if (dfPlayer.begin(dfSerial, dfUseAck)) {
+    dfPlayerReady = true;
+    dfPlayerSdOk  = false;
+    delay(500);
+
+    dfPlayer.volume(30);
+    delay(150);
+    dfPlayer.EQ(DFPLAYER_EQ_NORMAL);
+    delay(150);
+    dfPlayer.outputDevice(DFPLAYER_DEVICE_SD);
+    delay(150);
+    /* Jangan guna start() di sini — ia boleh picu main sebelum masa; stop() matikan autoplay selepas reset */
+    dfPlayer.stop();
+    delay(250);
+
+    dfPlayerSdFileCount = dfPlayer.readFileCounts(DFPLAYER_DEVICE_SD);
+    dfPlayer.stop();
+    delay(150);
+
+    dfPlayerSdOk = (dfPlayerSdFileCount > 0);
+    if (!dfPlayerSdOk)
+      dfPlayerReady = false;
+  } else {
+    dfPlayerReady       = false;
+    dfPlayerSdOk        = false;
+    dfPlayerSdFileCount = -1;
+  }
+}
+
+void playSound(int trackNumber, int delayMs) {
+  if (!dfPlayerReady)
+    return;
+  dfPlayer.stop();
+  delay(80);
+  dfPlayer.volume(30);
+  delay(50);
+  dfPlayerPlayIndexedTrack(trackNumber);
+  delay(200);
+  if (delayMs > 0)
+    delay(delayMs);
+}
+
+void speakTime(int hours, int minutes) {
+  if (!dfPlayerReady)
+    return;
+  if (hours < 0)
+    hours = 0;
+  else if (hours > 23)
+    hours = 23;
+  if (minutes < 0)
+    minutes = 0;
+  else if (minutes > 59)
+    minutes = 59;
+
+  /*
+   * Folder 01 jam: 001.mp3 … 012.mp3 (12j). RTC jam 00 & 12 → trek 12 (012.mp3).
+   * Folder 02 minit: 001.mp3 … 060.mp3. Minit 00 → 060.mp3 (indeks 60); lain 1–59.
+   */
+  int h12 = hours % 12;
+  if (h12 == 0)
+    h12 = 12;
+  const int minTrack = (minutes == 0) ? 60 : minutes;
+
+  dfPlayer.stop();
+  delay(80);
+  dfPlayer.volume(30);
+  delay(50);
+  dfPlayer.playFolder((uint8_t)DFPLAYER_SPEAK_FOLDER_HOUR, (uint8_t)h12);
+  delay(SPEAK_TIME_MS_AFTER_HOUR);
+  dfPlayer.playFolder((uint8_t)DFPLAYER_SPEAK_FOLDER_MINUTE, (uint8_t)minTrack);
+  delay(SPEAK_TIME_MS_AFTER_MINUTE);
+}
 
 int rightToLen(const char* strText, int charW, int padRight) {
   return 128 - ((int)strlen(strText) * charW) - padRight;
@@ -99,60 +202,7 @@ void syncRTCwithNTP() {
     timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 }
 
-// ─── Input / solat semula ───────────────────────────────
-
-static bool currentMinuteMatchesAnySolat(const DateTime& now);
-
-void handleButtons(){
-  if (digitalRead(BTN_MENU) == LOW) {
-    delay(200);
-    if      (currentState == SLEEP) currentState = HOME;
-    else if (currentState == HOME)  currentState = MENU;
-    else if (currentState == MENU)  currentState = HOME;
-  }
-  if (digitalRead(BTN_UP) == LOW) {
-    delay(200);
-    if (currentState == MENU)
-      menuIndex = (menuIndex - 1 + menuItems) % menuItems;
-  }
-  if (digitalRead(BTN_DOWN) == LOW) {
-    delay(200);
-    if (currentState == MENU)
-      menuIndex = (menuIndex + 1) % menuItems;
-  }
-  if (digitalRead(BTN_SET) == LOW) {
-    delay(200);
-    if      (currentState == SLEEP) currentState = HOME;
-    else if (currentState == HOME)  currentState = SLEEP;
-    else if (currentState == MENU) {
-      if      (menuIndex == 0) currentState = SET_TAKWIM;
-      else if (menuIndex == 1) currentState = SET_DATE;
-      else if (menuIndex == 2) currentState = SET_TIME;
-      else if (menuIndex == 3) currentState = SET_WIFI;
-    }
-  }
-  if (digitalRead(BTN_RET) == LOW) {
-    delay(200);
-    if      (currentState == SLEEP) currentState = HOME;
-    else if (currentState == MENU)  currentState = HOME;
-    else if (currentState != HOME)  currentState = MENU;
-  }
-  if (digitalRead(BTN_LAYOUT) == LOW) {
-    delay(200);
-    if (currentState == HOME) {
-      displayLayout = (displayLayout == 1) ? 2 : 1;
-
-      if (preferences.begin("cfg", false)) {
-        preferences.putInt("layout", displayLayout);
-        preferences.end();
-      }
-
-      if (dfPlayerReady && !currentMinuteMatchesAnySolat(rtc.now()))
-        playSound(TRACK_SD_BEEP, 100);
-      Serial.printf("[layout] switched to layout %d\n", displayLayout);
-    }
-  }
-}
+// ─── Solat semula ───────────────────────────────────────
 
 void handleSolatRetry(){
   if (solatLoaded) return;
@@ -170,111 +220,10 @@ void handleSolatRetry(){
   }
 }
 
-// ─── Kipas masa / audio solat ─────────────────────────
-// SD ROOT: 1=beep 2=notify 3/4=short 5=azan 6=full — :00→6, :15→rawak 3/4; masuk waktu→5 sahaja.
-// Pada minit waktu solat: tiada :00/:15/layout; hanya azan.
-
-static int           lastWarnIdx    = -1;
-static int           lastAzanIdx    = -1;
-static unsigned long azanMatchStart = 0;
-static bool          azanBeepDone   = false;
-static int           lastMusicTick  = -1;
-
-/** true jika minit semasa sepadan dengan mana-mana waktu solat (Subuh–Isyak): hanya azan dibenarkan pada DFPlayer. */
-static bool currentMinuteMatchesAnySolat(const DateTime& now) {
-  if (!solatLoaded) return false;
-  int nowMin = now.hour() * 60 + now.minute();
-  const char* times[] = {
-    todaySolat.fajr,    todaySolat.syuruk, todaySolat.dhuhr,
-    todaySolat.asr,     todaySolat.maghrib, todaySolat.isha
-  };
-  for (int i = 0; i < 6; i++) {
-    int sm = timeToMinutes(times[i]);
-    if (sm > 0 && sm == nowMin) return true;
-  }
-  return false;
-}
-
 void handleBlink() {
   if (millis() - lastBlinkTime >= 500UL) {
     colonBlink    = !colonBlink;
     lastBlinkTime = millis();
-  }
-}
-
-void handleBuzzer() {
-  if (!solatLoaded) return;
-  if (currentState == SLEEP) return;
-
-  DateTime now = rtc.now();
-  int nowMin   = now.hour() * 60 + now.minute();
-  const bool  solatMinute = currentMinuteMatchesAnySolat(now);
-
-  const char* times[] = {
-    todaySolat.fajr,    todaySolat.syuruk, todaySolat.dhuhr,
-    todaySolat.asr,     todaySolat.maghrib, todaySolat.isha
-  };
-
-  for (int i = 0; i < 6; i++) {
-    int solatMin = timeToMinutes(times[i]);
-    if (solatMin == 0) continue;
-
-    int diff = solatMin - nowMin;
-
-    if (diff == 1 && now.second() >= 28 && now.second() <= 32) {
-      if (lastWarnIdx != i) {
-        lastWarnIdx = i;
-        if (dfPlayerReady) {
-          playSound(TRACK_SD_NOTIFY, 0); delay(500);
-          playSound(TRACK_SD_NOTIFY, 0); delay(500);
-          playSound(TRACK_SD_NOTIFY, 0);
-        }
-        Serial.printf("[sound] warning 30s: %s\n", times[i]);
-      }
-    }
-
-    if (diff == 0) {
-      if (lastAzanIdx != i) {
-        lastAzanIdx    = i;
-        azanMatchStart = millis();
-        azanBeepDone   = false;
-      }
-      if (!azanBeepDone) {
-        azanBeepDone = true;
-        if (dfPlayerReady) {
-          for (int j = 0; j < AZAN_PLAY_COUNT; j++) {
-            playSound(TRACK_SD_AZAN, 0);
-            delay(1500);
-          }
-        }
-        Serial.printf("[sound] azan: %s\n", times[i]);
-      }
-    }
-  }
-
-  /* Setiap jam :00 → trek 6 (full); :15 → rawak trek 3 atau 4 (pendek) */
-  if (!solatMinute && now.second() <= 2 && (now.minute() == 0 || now.minute() == 15)) {
-    int tick = now.hour() * 60 + now.minute();
-    if (lastMusicTick != tick) {
-      lastMusicTick = tick;
-      int tr = (now.minute() == 0)
-                   ? TRACK_SD_FULL_MUSIC
-                   : (((esp_random() & 1U) != 0U) ? TRACK_SD_SHORT_A
-                                                  : TRACK_SD_SHORT_B);
-      if (dfPlayerReady)
-        playSound(tr, 400);
-      Serial.printf("[sound] music %02d:%02d trek %d\n", now.hour(), now.minute(), tr);
-    }
-  }
-
-  bool anyActive = false;
-  for (int i = 0; i < 6; i++) {
-    int solatMin = timeToMinutes(times[i]);
-    if (nowMin == solatMin) { anyActive = true; break; }
-  }
-  if (!anyActive && azanMatchStart > 0 && millis() - azanMatchStart > 60000UL) {
-    azanMatchStart = 0;
-    azanBeepDone   = false;
   }
 }
 

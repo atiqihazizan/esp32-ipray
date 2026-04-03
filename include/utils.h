@@ -5,13 +5,17 @@ void showInitializing(int dots);
 void connectWiFi();
 void syncRTCwithNTP();
 
-void handleButtons();
+/** UART2 + DFPlayer Mini — volume, EQ, SD check */
+void initDfPlayer();
+
 void handleSolatRetry();
 void handleBlink();
-void handleBuzzer();
 
-/** Ditakrif dalam main.cpp — dipanggil dari util/input */
+/** Ditakrif dalam utils.cpp — dipanggil dari sound.cpp / buttons.cpp */
 void playSound(int trackNumber, int delayMs = 0);
+
+/** DFPlayer: folder jam lalu folder minit — rujuk DFPLAYER_SPEAK_FOLDER_* dalam config.h */
+void speakTime(int hours, int minutes);
 
 int rightToLen(const char *strText, int charW = 6, int padRight = 0);
 void drawSignalBars(int x, int y);

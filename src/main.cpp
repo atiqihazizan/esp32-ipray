@@ -2,23 +2,16 @@
 #include "secrets.h"
 #include "display.h"
 #include "utils.h"
+#include "buttons.h"
+#include "sound.h"
 #include "solat.h"
 #include <WiFi.h>
 #include <Wire.h>
-#include <DFRobotDFPlayerMini.h>
-#include <HardwareSerial.h>
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // RTC_DS1307       rtc;
 RTC_DS3231       rtc;
 Preferences      preferences;
-
-// ─── DFPlayer Mini ────────────────────────────────────
-HardwareSerial dfSerial(2);  // UART2 untuk DFPlayer
-DFRobotDFPlayerMini dfPlayer;
-bool dfPlayerReady   = false;
-bool dfPlayerSdOk    = false;
-int  dfPlayerSdFileCount = -1;
 
 const char *daysOfWeek[]   = {"Ahad","Isnin","Selasa","Rabu","Khamis","Jumaat","Sabtu"};
 const char *monthsOfYear[] = {"","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
@@ -43,80 +36,11 @@ unsigned long lastSolatRetry = 0;
 
 int displayLayout = DISPLAY_LAYOUT;
 
-/** Satu arahan main: 0=mp3/ 1=ROOT 2=folder01 */
-static void dfPlayerPlayOneMode(int trackNumber, int mode) {
-  switch (mode) {
-    case 1: dfPlayer.play(trackNumber); break;
-    case 2: dfPlayer.playFolder(1, static_cast<uint8_t>(trackNumber)); break;
-    default: dfPlayer.playMp3Folder(trackNumber); break;
-  }
-}
-
-static void dfPlayerPlayIndexedTrack(int trackNumber) {
-  dfPlayerPlayOneMode(trackNumber, DFPLAYER_PLAY_MODE);
-}
-
-void playSound(int trackNumber, int delayMs) {
-  if (!dfPlayerReady)
-    return;
-  dfPlayer.stop();
-  delay(80);
-  dfPlayer.volume(30);
-  delay(50);
-  dfPlayerPlayIndexedTrack(trackNumber);
-  delay(200);
-  if (delayMs > 0)
-    delay(delayMs);
-}
-
-/** Nada ringkas pada buzzer pasif (kemudian pin boleh digunakan semula). */
-static void buzzTone(int freqHz, int durationMs) {
-  ledcSetup(BUZZER_CHANNEL, freqHz, BUZZER_RES);
-  ledcAttachPin(BUZZER_PIN, BUZZER_CHANNEL);
-  ledcWrite(BUZZER_CHANNEL, 200);
-  delay(durationMs);
-  ledcDetachPin(BUZZER_PIN);
-}
-
 // ─────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
 
-  // ── Setup DFPlayer Mini ───────────────────────────
-  dfSerial.begin(9600, SERIAL_8N1, DFPLAYER_RX, DFPLAYER_TX);
-  delay(500);
-
-#if DFPLAYER_USE_ACK
-  const bool dfUseAck = true;
-#else
-  const bool dfUseAck = false;
-#endif
-
-  if (dfPlayer.begin(dfSerial, dfUseAck)) {
-    dfPlayerReady = true;
-    dfPlayerSdOk  = false;
-    delay(500);
-
-    dfPlayer.volume(30);
-    delay(150);
-    dfPlayer.outputDevice(DFPLAYER_DEVICE_SD);
-    delay(150);
-    /* Jangan guna start() di sini — ia boleh picu main sebelum masa; stop() matikan autoplay selepas reset */
-    dfPlayer.stop();
-    delay(250);
-
-    dfPlayerSdFileCount = dfPlayer.readFileCounts(DFPLAYER_DEVICE_SD);
-    dfPlayer.stop();
-    delay(150);
-
-    dfPlayerSdOk = (dfPlayerSdFileCount > 0);
-    if (!dfPlayerSdOk)
-      dfPlayerReady = false;
-  } else {
-    dfPlayerReady = false;
-    dfPlayerSdOk    = false;
-    dfPlayerSdFileCount = -1;
-  }
+  initDfPlayer();
 
   pinMode(BTN_MENU, INPUT_PULLUP);
   pinMode(BTN_UP,   INPUT_PULLUP);
@@ -167,12 +91,10 @@ void setup() {
   display.print("Ready!");
   display.display();
 
-  static unsigned long lastBuzzPlay = 0;
-  lastBuzzPlay = millis();
-  buzzTone(BUZZER_ALERT_HZ, BUZZER_ALERT_MS);
-
-  if (dfPlayerReady)
-    playSound(TRACK_SD_BEEP, 600);
+  if (dfPlayerReady) {
+    DateTime now = rtc.now();
+    speakTime(now.hour(), now.minute());
+  }
 
   Serial.println("[setup] selesai");
 }
@@ -196,7 +118,7 @@ void loop() {
       break;
   }
 
-  handleBuzzer();
+  handleSound();
 
   delay(100);
 }

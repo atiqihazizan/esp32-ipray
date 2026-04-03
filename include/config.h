@@ -15,37 +15,63 @@
 #define BTN_RET          5
 #define BTN_LAYOUT      23
 
-// Buzzer pasif (LEDC PWM). Tukar pin jika bertindih dengan wayar lain.
-#define BUZZER_PIN       13
-#define BUZZER_CHANNEL   0
-#define BUZZER_RES       8
-#define BUZZER_ALERT_HZ    880
-#define BUZZER_ALERT_MS   120
-
 // ─── DFPlayer Mini MP3-TF-16P ────────────────────────
-// Old pins (jika tidak berfungsi):
-// #define DFPLAYER_RX     16  // ESP32 RX → DFPlayer TX
-// #define DFPLAYER_TX     17  // ESP32 TX → DFPlayer RX
-
 // New pins (alternative):
 #define DFPLAYER_RX     25  // ESP32 RX → DFPlayer TX
 #define DFPLAYER_TX     26  // ESP32 TX → DFPlayer RX
 
 // Main DFPlayer: tetap mode 1 — dfPlayer.play(n), fail MP3 di punca kad (ROOT), cth 001.mp3 / 0003.mp3
-#define DFPLAYER_PLAY_MODE   1
+#define DFPLAYER_PLAY_MODE   2
 
 // 0 = UART tanpa ACK (sesetengah modul lebih stabil); 1 = dengan ACK
 #define DFPLAYER_USE_ACK     0
 
+/**
+ * speakTime(): DFPlayer playFolder — folder `01` jam, `02` minit.
+ * 01/: 001–012.mp3 — RTC 24j → 12j; jam 00 & 12 → 012.mp3 (indeks 12).
+ * 02/: 001–060.mp3 — minit 00 → 060.mp3 (60); :01–:59 → 001–059 (1–59).
+ */
+#define DFPLAYER_SPEAK_FOLDER_HOUR    1
+#define DFPLAYER_SPEAK_FOLDER_MINUTE  2
+#define SPEAK_TIME_MS_AFTER_HOUR      1000
+#define SPEAK_TIME_MS_AFTER_MINUTE    2000
+
 /** ROOT play(n) — fail di punca SD: 001.mp3 … 006.mp3 */
 #define TRACK_SD_BEEP        1  // beep (startup, layout, dll. — bukan masuk waktu)
 #define TRACK_SD_NOTIFY      2  // notify (30s sebelum solat)
-#define TRACK_SD_SHORT_A     3  // muzik pendek — Jamal Al Wujood (:15 rawak)
-#define TRACK_SD_SHORT_B     4  // muzik pendek — Qalbil Fil Madina (:15 rawak)
-#define TRACK_SD_AZAN        5  // azan — hanya bila masuk waktu solat
-#define TRACK_SD_FULL_MUSIC  6  // muzik penuh — Jamal Al Wujood (setiap :00)
+#define TRACK_SD_SHORT_A     3  // QUARTER_CHIME_MODE_SHORT_RANDOM: pilih rawak A atau B dalam sound.cpp
+#define TRACK_SD_SHORT_B     4
+#define TRACK_SD_FULL_MUSIC  5  // muzik penuh — dipakai pada :00 jika HOURLY_CHIME_MODE=0
+#define TRACK_SD_AZAN        6  // azan penuh — satu fail MP3 (main sekali; beep dulu jika AZAN_USE_BEEP_PREAMBLE)
 
-/** Bilangan main trek azan bila masuk waktu solat */
+/**
+ * Tepat jam penuh (:00):
+ * 0 = main TRACK_SD_FULL_MUSIC (muzik)
+ * 1 = speakTime(jam, minit) — folder DFPLAYER_SPEAK_FOLDER_HOUR / MINUTE pada SD
+ */
+#define HOURLY_CHIME_MODE_FULL_MUSIC     0
+#define HOURLY_CHIME_MODE_SPEAK_FOLDERS  1
+#define HOURLY_CHIME_MODE                HOURLY_CHIME_MODE_SPEAK_FOLDERS
+
+// Pilihan Mod Suku Jam (15, 30, 45 minit)
+#define QUARTER_CHIME_MODE_SPEAK_FOLDERS 1
+#define QUARTER_CHIME_MODE_SHORT_RANDOM  2
+#define QUARTER_CHIME_MODE_SPECIFIC_TRACK 3
+
+// Tetapkan mod yang anda mahu gunakan untuk suku jam:
+#define QUARTER_CHIME_MODE QUARTER_CHIME_MODE_SPEAK_FOLDERS
+
+// Jika guna mod SPECIFIC_TRACK, tetapkan nombor treknya:
+#define TRACK_SD_QUARTER_MUSIC 3 // Contoh: fail 0010.mp3
+
+/**
+ * Cara main bila masuk waktu solat:
+ * 1 = beep (trek 1) diluang AZAN_PLAY_COUNT kali, lalu azan penuh sekali.
+ * 0 = azan penuh sahaja — AZAN_PLAY_COUNT tidak dipakai.
+ */
+#define AZAN_USE_BEEP_PREAMBLE  0
+
+/** Bilangan beep (trek 1) sebelum azan — hanya jika AZAN_USE_BEEP_PREAMBLE = 1 */
 #define AZAN_PLAY_COUNT   5
 
 // Buzz + DFPlayer berkala (ms); 0 = matikan — rujukan trek jika diperlukan
