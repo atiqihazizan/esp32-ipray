@@ -1,0 +1,169 @@
+╔════════════════════════════════════════════════════════════╗
+║         CARA DETECT EXTEND BOARD ESP32                     ║
+╚════════════════════════════════════════════════════════════╝
+
+📋 STATUS SEMASA:
+   ❌ ESP32 tidak disambung
+   ✅ Board detector tools sudah siap
+   ✅ Scripts sudah dikonfigurasi
+
+═══════════════════════════════════════════════════════════
+
+🔌 LANGKAH-LANGKAH:
+
+1. SAMBUNG ESP32
+   • Gunakan kabel USB data (bukan charge-only)
+   • Sambung ke Mac anda
+   • LED power sepatutnya menyala
+
+2. VERIFY CONNECTION
+   Jalankan: ls /dev/cu.*
+   
+   Sepatutnya nampak:
+   /dev/cu.usbserial-XXXX  atau
+   /dev/cu.SLAB_USBtoUART  atau
+   /dev/cu.wchusbserialXXXX
+
+3. RUN DETECTOR
+   
+   Option A - Auto detect & run:
+   ./wait-and-detect.sh
+   
+   Option B - Manual run:
+   ./detect-board.sh
+
+═══════════════════════════════════════════════════════════
+
+📊 APA YANG AKAN DI-DETECT:
+
+✓ Chip Information
+  - Model & revision
+  - CPU frequency
+  - Flash size
+  - Free memory
+
+✓ I2C Devices
+  - OLED Display (0x3C/0x3D)
+  - RTC DS3231 (0x68)
+  - LCD I2C (0x27/0x3F)
+  - Sensors (BMP280, BME280, etc)
+  - I/O Expanders
+  - EEPROM
+
+✓ GPIO Status
+  - Button states
+  - Pin connections
+  - Input/Output status
+
+✓ Board Type
+  - Identify common boards
+  - List connected modules
+
+═══════════════════════════════════════════════════════════
+
+🎯 EXPECTED OUTPUT:
+
+╔════════════════════════════════════════════╗
+║   ESP32 BOARD DETECTOR v1.0                ║
+╚════════════════════════════════════════════╝
+
+💾 ESP32 Chip Info
+================================================
+Chip Model: ESP32-D0WD-V3
+Chip Revision: 3
+CPU Frequency: 240 MHz
+Flash Size: 4 MB
+Free Heap: 280 KB
+
+📡 I2C Device Scanner
+================================================
+Addr | Device
+-----|----------------------------------
+0x3C | ✓ OLED Display (SSD1306)
+0x57 | ✓ RTC DS3231 EEPROM
+0x68 | ✓ RTC DS3231
+
+Total: 3 I2C device(s) found
+
+🔘 Button Scanner
+================================================
+Pin  | State
+-----|-------
+GPIO32 | HIGH (Not pressed)
+GPIO33 | HIGH (Not pressed)
+...
+
+🔍 Board Detection
+================================================
+✓ OLED Display detected
+✓ RTC DS3231 detected
+
+Possible Board Types:
+- ESP32 Dev Board with OLED & RTC
+- Custom iPray Board
+
+================================================
+✅ Scan Complete!
+
+═══════════════════════════════════════════════════════════
+
+🔧 TROUBLESHOOTING:
+
+Port tidak muncul?
+  1. Check kabel USB (guna kabel data, bukan charge-only)
+  2. Cuba port USB lain
+  3. Install driver:
+     - CH340: https://github.com/adrianmihalko/ch340g-ch34g-ch34x-mac-os-x-driver
+     - CP2102: https://www.silabs.com/drivers
+
+Upload gagal?
+  1. Tekan & tahan button BOOT semasa upload
+  2. Reset ESP32 selepas upload
+  3. Check port dalam platformio.ini
+
+Tiada device detected?
+  1. Check wiring (SDA=21, SCL=22, VCC=3.3V, GND=GND)
+  2. Check pull-up resistors (4.7kΩ)
+  3. Verify device voltage (3.3V vs 5V)
+
+═══════════════════════════════════════════════════════════
+
+📚 FILES REFERENCE:
+
+Scripts:
+  • detect-board.sh        - Main detector script
+  • wait-and-detect.sh     - Auto-wait for ESP32
+  • upload.sh              - Upload helper
+
+Scanners:
+  • test/i2c_scanner.cpp      - I2C only
+  • test/gpio_scanner.cpp     - GPIO only
+  • test/board_detector.cpp   - Complete scan
+
+Docs:
+  • docs/DETECT-BOARD.md   - Full documentation
+  • QUICK-START.md         - Quick guide
+  • README.md              - Project info
+
+═══════════════════════════════════════════════════════════
+
+💡 QUICK COMMANDS:
+
+# Check if ESP32 connected
+ls /dev/cu.*
+
+# Wait for ESP32 then auto-detect
+./wait-and-detect.sh
+
+# Detect immediately (ESP32 must be connected)
+./detect-board.sh
+
+# Manual I2C scan
+cp test/i2c_scanner.cpp src/main.cpp
+pio run -t upload -t monitor
+
+═══════════════════════════════════════════════════════════
+
+Sila sambung ESP32 dan jalankan:
+./wait-and-detect.sh
+

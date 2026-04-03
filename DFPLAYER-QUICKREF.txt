@@ -1,0 +1,243 @@
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║         ESP32 iPRAY - DFPLAYER MINI QUICK REFERENCE           ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+
+┌────────────────────────────────────────────────────────────────┐
+│ 🔌 WIRING                                                      │
+└────────────────────────────────────────────────────────────────┘
+
+ESP32          DFPlayer Mini          DFPlayer Mini  Speaker
+─────────────  ─────────────          ─────────────  ───────
+5V           → VCC                    SPK_1        → (+)
+GND          → GND                    SPK_2        → (-)
+GPIO16 (RX)  → TX
+GPIO17 (TX)  → RX
+
+⚠️  IMPORTANT: DFPlayer needs 5V (NOT 3.3V)
+
+┌────────────────────────────────────────────────────────────────┐
+│ 💾 SD CARD STRUCTURE                                           │
+└────────────────────────────────────────────────────────────────┘
+
+SD Card Root (FAT32, max 32GB)
+└── mp3/
+    ├── 001.mp3  ← Warning beep (0.5s, 880Hz)
+    ├── 002.mp3  ← Azan beep (1.0s, 1200Hz)
+    ├── 003.mp3  ← Hourly beep (0.3s, 600Hz)
+    ├── 004.mp3  ← Startup sound (1.0s)
+    └── 005.mp3  ← Full azan (optional, 3-5min)
+
+┌────────────────────────────────────────────────────────────────┐
+│ 🎵 GENERATE MP3 FILES (FFmpeg)                                 │
+└────────────────────────────────────────────────────────────────┘
+
+brew install ffmpeg
+
+ffmpeg -f lavfi -i "sine=frequency=880:duration=0.5" -b:a 128k 001.mp3
+ffmpeg -f lavfi -i "sine=frequency=1200:duration=1.0" -b:a 128k 002.mp3
+ffmpeg -f lavfi -i "sine=frequency=600:duration=0.3" -b:a 128k 003.mp3
+ffmpeg -f lavfi -i "sine=frequency=1000:duration=1.0" -b:a 128k 004.mp3
+
+Or online: https://www.szynalski.com/tone-generator/
+
+┌────────────────────────────────────────────────────────────────┐
+│ 🚀 UPLOAD CODE                                                 │
+└────────────────────────────────────────────────────────────────┘
+
+cd ~/IoT/esp32-ipray
+./upload.sh
+
+Or: pio run --target upload --target monitor
+
+┌────────────────────────────────────────────────────────────────┐
+│ 💬 EXPECTED SERIAL OUTPUT                                      │
+└────────────────────────────────────────────────────────────────┘
+
+[dfplayer] initializing...
+[dfplayer] ready! Volume: 25          ← SUCCESS!
+[wifi] connecting...
+[wifi] connected, IP: 192.168.x.x
+[ntp] RTC updated: 2026-03-31 12:34:56
+[setup] selesai
+
+If failed:
+[dfplayer] failed! Using buzzer fallback  ← Check wiring/SD card
+
+┌────────────────────────────────────────────────────────────────┐
+│ 🔧 TROUBLESHOOTING                                             │
+└────────────────────────────────────────────────────────────────┘
+
+❌ "[dfplayer] failed!"
+   ✓ Check wiring: ESP32 RX → DFPlayer TX (not RX to RX!)
+   ✓ Check power: 5V connected (NOT 3.3V)
+   ✓ Check SD card: Inserted? Formatted FAT32?
+   ✓ Check files: 001.mp3 - 004.mp3 in mp3/ folder?
+
+❌ No sound from speaker
+   ✓ Check speaker connection (SPK_1/SPK_2)
+   ✓ Check volume: dfPlayer.volume(25); in code
+   ✓ Test MP3 files on computer first
+   ✓ Try different speaker (3W-5W, 8Ω)
+
+❌ SD card not detected
+   ✓ Reformat to FAT32 (not exFAT or NTFS)
+   ✓ Max size: 32GB
+   ✓ Try different SD card
+   ✓ Ensure fully inserted in DFPlayer slot
+
+┌────────────────────────────────────────────────────────────────┐
+│ 🎯 CODE FUNCTIONS                                              │
+└────────────────────────────────────────────────────────────────┘
+
+playSound(1, 0);    // Warning beep (3x before prayer)
+playSound(2, 0);    // Azan beep (5x at prayer time)
+playSound(3, 500);  // Hourly beep
+playSound(4, 0);    // Startup sound
+playSound(5, 0);    // Full azan (optional)
+
+Volume control (0-30):
+dfPlayer.volume(25);  // Default: 25
+
+┌────────────────────────────────────────────────────────────────┐
+│ 🎚️ VOLUME SETTINGS                                            │
+└────────────────────────────────────────────────────────────────┘
+
+Edit in src/main.cpp (line ~220):
+
+dfPlayer.volume(15);  // Quiet environment
+dfPlayer.volume(20);  // Normal environment
+dfPlayer.volume(25);  // Default
+dfPlayer.volume(30);  // Noisy environment
+
+┌────────────────────────────────────────────────────────────────┐
+│ 📊 AUDIO SPECIFICATIONS                                        │
+└────────────────────────────────────────────────────────────────┘
+
+Format:       MP3
+Bitrate:      128kbps (recommended)
+Sample Rate:  44.1kHz or 48kHz
+Naming:       001.mp3, 002.mp3, 003.mp3, etc. (3 digits)
+Folder:       /mp3/
+Max Size:     < 5MB per file
+
+┌────────────────────────────────────────────────────────────────┐
+│ 💡 FEATURES                                                    │
+└────────────────────────────────────────────────────────────────┘
+
+✅ Warning beep - 3x beep 30 seconds before prayer time
+✅ Azan notification - 5x long beep at prayer time
+✅ Hourly beep - 1x beep every hour
+✅ Startup sound - Plays on device boot
+✅ Button feedback - Beep on layout button press
+✅ Full azan - Optional full azan recitation (005.mp3)
+✅ Smart fallback - Auto use buzzer if DFPlayer fails
+
+┌────────────────────────────────────────────────────────────────┐
+│ 🔄 ENABLE FULL AZAN                                            │
+└────────────────────────────────────────────────────────────────┘
+
+Edit src/main.cpp (around line 310):
+
+if (dfPlayerReady) {
+  // Option 1: Full azan (uncomment this)
+  playSound(5, 0);  // Track 005.mp3 - full azan
+  
+  // Option 2: 5x beep (comment out this)
+  // for (int j = 0; j < 5; j++) {
+  //   playSound(2, 0);
+  //   delay(1500);
+  // }
+}
+
+┌────────────────────────────────────────────────────────────────┐
+│ 📚 DOCUMENTATION                                               │
+└────────────────────────────────────────────────────────────────┘
+
+docs/DFPLAYER-SETUP.md      - Complete setup guide
+docs/GENERATE-AUDIO.md      - How to create MP3 files
+docs/WIRING-DIAGRAM.md      - Full wiring reference
+docs/DFPLAYER-SUMMARY.md    - Integration summary
+
+┌────────────────────────────────────────────────────────────────┐
+│ 🎯 TESTING CHECKLIST                                           │
+└────────────────────────────────────────────────────────────────┘
+
+Hardware:
+☐ DFPlayer wired to ESP32 (GPIO16/17)
+☐ 5V power connected (NOT 3.3V)
+☐ Speaker connected (SPK_1/SPK_2)
+
+SD Card:
+☐ Formatted to FAT32
+☐ Folder mp3/ created
+☐ Files 001.mp3 - 004.mp3 copied
+☐ SD card inserted in DFPlayer
+
+Software:
+☐ Code uploaded to ESP32
+☐ Serial monitor shows "[dfplayer] ready!"
+☐ Startup sound plays on boot
+
+Testing:
+☐ Test prayer time notification
+☐ Test hourly beep
+☐ Test button feedback sound
+☐ Adjust volume as needed
+
+┌────────────────────────────────────────────────────────────────┐
+│ ⚡ QUICK COMMANDS                                              │
+└────────────────────────────────────────────────────────────────┘
+
+# Build project
+pio run
+
+# Upload to ESP32
+pio run --target upload
+
+# Monitor serial
+pio device monitor
+
+# All in one
+./upload.sh
+
+# Check USB port
+ls /dev/cu.*
+
+# Test audio on Mac
+afplay 001.mp3
+
+┌────────────────────────────────────────────────────────────────┐
+│ 🔗 USEFUL LINKS                                                │
+└────────────────────────────────────────────────────────────────┘
+
+Tone Generator:    https://www.szynalski.com/tone-generator/
+Audio Converter:   https://online-audio-converter.com/
+DFPlayer Docs:     https://wiki.dfrobot.com/DFPlayer_Mini_SKU_DFR0299
+Library GitHub:    https://github.com/DFRobot/DFRobotDFPlayerMini
+
+┌────────────────────────────────────────────────────────────────┐
+│ 📝 NOTES                                                       │
+└────────────────────────────────────────────────────────────────┘
+
+• DFPlayer MUST use 5V power (3.3V will not work)
+• RX/TX wiring: ESP32 RX → DFPlayer TX (cross connection)
+• SD card MUST be FAT32 format (not exFAT or NTFS)
+• MP3 files MUST be in mp3/ folder with 3-digit names
+• System auto fallbacks to buzzer if DFPlayer fails
+• Buzzer on GPIO13 still works as backup
+• Test MP3 files on computer before copying to SD card
+• Use quality SD card (cheap cards may cause issues)
+• Speaker: 3W-5W, 8Ω recommended
+• Volume range: 0-30 (default: 25)
+
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║  Status: ✅ COMPLETE & READY TO TEST!                         ║
+║                                                                ║
+║  Build: SUCCESS | RAM: 14.8% | Flash: 77.7%                   ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+
+Print this for quick reference! 📄

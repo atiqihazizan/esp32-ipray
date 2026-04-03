@@ -1,0 +1,56 @@
+# PlatformIO
+.pio/
+.vscode/
+.pioenvs/
+.piolibdeps/
+.clang_complete
+.gcc-flags.json
+
+# Backup files
+*.bak
+backup/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Editor directories and files
+.idea
+*.swp
+*.swo
+*~
+.project
+.cproject
+.settings/
+
+# Build files
+*.o
+*.a
+*.elf
+*.bin
+*.hex
+
+# Credentials (jangan commit!)
+credentials.h
+secrets.h
+include/secrets.h
