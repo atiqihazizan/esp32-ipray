@@ -111,7 +111,12 @@ pio run --target clean && pio run
 
 ## 📚 Dokumentasi Lanjut
 
-Lihat folder `docs/` untuk dokumentasi lengkap.
+| Fail | Keterangan |
+|------|------------|
+| [docs/QUICK-START.md](docs/QUICK-START.md) | Mula cepat (3 langkah) |
+| [docs/TROUBLESHOOT-USB.md](docs/TROUBLESHOOT-USB.md) | Masalah port USB / driver |
+| [docs/CARA-UPLOAD.md](docs/CARA-UPLOAD.md) | Panduan upload |
+| Folder [docs/](docs/) | Setup DFPlayer, wiring, dll. |
 
 ## 🔗 Credits
 

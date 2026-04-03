@@ -144,7 +144,7 @@ void handleButtons(){
         preferences.end();
       }
 
-      if (dfPlayerReady)
+      if (dfPlayerReady && !currentMinuteMatchesAnySolat(rtc.now()))
         playSound(TRACK_SD_MUSIC_B, 100);
       Serial.printf("[layout] switched to layout %d\n", displayLayout);
     }
@@ -168,13 +168,29 @@ void handleSolatRetry(){
 }
 
 // ─── Kipas masa / audio solat ─────────────────────────
-// SD ROOT: 001 azan, 002 warning, 003/004 music pada :00 dan :15 (trek berbeza dalam sejam)
+// SD ROOT: 001 azan, 002 warning, 003/004 music pada :00 dan :15 (trek berbeza dalam sejam).
+// Pada minit mana-mana waktu solat: DFPlayer hanya main trek azan (tiada muzik :00/:15 & bunyi layout).
 
 static int           lastWarnIdx    = -1;
 static int           lastAzanIdx    = -1;
 static unsigned long azanMatchStart = 0;
 static bool          azanBeepDone   = false;
 static int           lastMusicTick  = -1;
+
+/** true jika minit semasa sepadan dengan mana-mana waktu solat (Subuh–Isyak): hanya azan dibenarkan pada DFPlayer. */
+static bool currentMinuteMatchesAnySolat(const DateTime& now) {
+  if (!solatLoaded) return false;
+  int nowMin = now.hour() * 60 + now.minute();
+  const char* times[] = {
+    todaySolat.fajr,    todaySolat.syuruk, todaySolat.dhuhr,
+    todaySolat.asr,     todaySolat.maghrib, todaySolat.isha
+  };
+  for (int i = 0; i < 6; i++) {
+    int sm = timeToMinutes(times[i]);
+    if (sm > 0 && sm == nowMin) return true;
+  }
+  return false;
+}
 
 void handleBlink() {
   if (millis() - lastBlinkTime >= 500UL) {
@@ -189,6 +205,7 @@ void handleBuzzer() {
 
   DateTime now = rtc.now();
   int nowMin   = now.hour() * 60 + now.minute();
+  const bool  solatMinute = currentMinuteMatchesAnySolat(now);
 
   const char* times[] = {
     todaySolat.fajr,    todaySolat.syuruk, todaySolat.dhuhr,
@@ -232,8 +249,8 @@ void handleBuzzer() {
     }
   }
 
-  /* Muzik pada tepi jam (:00) dan seperempat (:15); :15 guna trek yang bukan dipilih pada :00 sejam itu */
-  if (now.second() <= 2 && (now.minute() == 0 || now.minute() == 15)) {
+  /* Muzik pada :00 / :15 — jangan main jika minit ini waktu solat (hanya azan dibenarkan) */
+  if (!solatMinute && now.second() <= 2 && (now.minute() == 0 || now.minute() == 15)) {
     int tick = now.hour() * 60 + now.minute();
     if (lastMusicTick != tick) {
       lastMusicTick = tick;

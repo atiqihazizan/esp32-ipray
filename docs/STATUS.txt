@@ -30,10 +30,10 @@
    ✓ upload.sh - Upload helper script
 
 📝 DOCUMENTATION:
-   • QUICK-START.md - Quick start guide (⭐ START HERE)
-   • CARA-UPLOAD.md - Upload instructions
-   • RINGKASAN-SETUP.md - Setup summary
-   • README.md - Full documentation
+   • docs/QUICK-START.md - Quick start (⭐ START HERE)
+   • docs/CARA-UPLOAD.md - Upload instructions
+   • docs/RINGKASAN-SETUP.md - Setup summary
+   • README.md (root) - Full documentation
 
 ⚙️  CONFIGURATION NEEDED:
    ⚠️  Edit src/main.cpp:
@@ -61,4 +61,4 @@
 
 ═══════════════════════════════════════════════════════════════
 
-Need help? Read QUICK-START.md or CARA-UPLOAD.md
+Need help? Read docs/QUICK-START.md or docs/CARA-UPLOAD.md

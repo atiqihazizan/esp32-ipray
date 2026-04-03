@@ -145,8 +145,8 @@ Scanners (dipanggil oleh detect-board.sh scan):
 Docs:
   • docs/DETECT-BOARD.md   - Full documentation
   • docs/DETECT-ESP32.txt  - Fail ini (ringkasan pantas)
-  • ../QUICK-START.md      - Quick guide
-  • ../README.md           - Project info
+  • docs/QUICK-START.md    - Quick guide
+  • README.md (root)       - Project info
 
 ═══════════════════════════════════════════════════════════
 

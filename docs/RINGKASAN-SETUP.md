@@ -30,9 +30,11 @@ esp32-ipray/
 ├── platformio.ini         # PlatformIO configuration
 ├── upload.sh              # Helper script untuk upload
 ├── .gitignore             # Git ignore file
-├── README.md              # Dokumentasi lengkap
-├── CARA-UPLOAD.md         # Panduan upload
-└── RINGKASAN-SETUP.md     # File ini
+├── README.md              # Dokumentasi utama (root)
+└── docs/                  # Panduan & nota (.md, .txt)
+    ├── QUICK-START.md
+    ├── CARA-UPLOAD.md
+    └── RINGKASAN-SETUP.md # File ini
 ```
 
 ---
@@ -56,8 +58,8 @@ esp32-ipray/
    - ✅ Remove conflicting WiFi library
 
 ### 4. **Documentation**
-   - ✅ README.md - Dokumentasi lengkap
-   - ✅ CARA-UPLOAD.md - Panduan upload
+   - ✅ README.md (root) - Dokumentasi utama
+   - ✅ docs/CARA-UPLOAD.md - Panduan upload
    - ✅ upload.sh - Helper script
 
 ---
@@ -181,9 +183,10 @@ Flash: 4MB (77.3% used = 1MB)
 
 ## 📖 Dokumentasi Lanjut
 
-- **README.md** - Dokumentasi lengkap projek
-- **CARA-UPLOAD.md** - Panduan upload & troubleshooting
-- **platformio.ini** - Configuration PlatformIO
+- **README.md** (root) - Dokumentasi lengkap projek
+- **docs/CARA-UPLOAD.md** - Panduan upload & troubleshooting
+- **docs/TROUBLESHOOT-USB.md** - Masalah USB / port
+- **platformio.ini** (root) - Configuration PlatformIO
 
 ---
 
@@ -225,6 +228,6 @@ pio run
 Selamat mencuba! 🎉
 
 Jika ada masalah, rujuk:
-1. CARA-UPLOAD.md untuk panduan upload
-2. README.md untuk dokumentasi lengkap
+1. docs/CARA-UPLOAD.md untuk panduan upload
+2. README.md (root) untuk dokumentasi lengkap
 3. Serial monitor untuk debug: `pio device monitor`
