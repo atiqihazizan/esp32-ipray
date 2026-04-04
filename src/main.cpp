@@ -96,7 +96,8 @@ void setup() {
 
   if (dfPlayerReady) {
     DateTime now = rtc.now();
-    speakTime(now.hour(), now.minute());
+    appFsmEnqSpeak(now.hour(), now.minute());
+    // appFsmEnqMp3(TRACK_SD_SHORT_A, 0);
   }
 
   Serial.println("[setup] selesai");

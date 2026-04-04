@@ -27,7 +27,8 @@
 /** Lepas hantar play, jangan anggap “siap” dalam tempoh ini (ms) — tepi UART */
 #define DFPLAYER_BUSY_IGNORE_MS   120
 
-// Main DFPlayer: tetap mode 1 — dfPlayer.play(n), fail MP3 di punca kad (ROOT), cth 001.mp3 / 0003.mp3
+// Hanya untuk appFsmEnqPlay(): 0=mp3/ 1=ROOT 2=folder jam(01) 3=folder minit(02)
+// Untuk kod baharu, guna appFsmEnqRoot / EnqMp3 / EnqFolder (bukan bergantung macro ini).
 #define DFPLAYER_PLAY_MODE   2
 
 // 0 = UART tanpa ACK (sesetengah modul lebih stabil); 1 = dengan ACK
@@ -49,8 +50,8 @@
 #define TRACK_SD_NOTIFY      2  // notify (30s sebelum solat)
 #define TRACK_SD_SHORT_A     3  // QUARTER_CHIME_MODE_SHORT_RANDOM: pilih rawak A atau B dalam sound.cpp
 #define TRACK_SD_SHORT_B     4
-#define TRACK_SD_FULL_MUSIC  5  // muzik penuh — dipakai pada :00 jika HOURLY_CHIME_MODE=0
-#define TRACK_SD_AZAN        6  // azan penuh — satu fail MP3 (main sekali; beep dulu jika AZAN_USE_BEEP_PREAMBLE)
+#define TRACK_SD_AZAN        5  // azan penuh — satu fail MP3 (main sekali; beep dulu jika AZAN_USE_BEEP_PREAMBLE)
+#define TRACK_SD_FULL_MUSIC  6  // muzik penuh — dipakai pada :00 jika HOURLY_CHIME_MODE=0
 
 /**
  * Tepat jam penuh (:00):

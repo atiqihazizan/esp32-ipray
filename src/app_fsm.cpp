@@ -13,10 +13,19 @@ static void appFsmBlinkTick() {
 // ─── Audio: baris gilir + sub-keadaan (tiada delay dalam loop) ──────────
 enum AudioJobType : uint8_t { AJ_PlayTrack = 0, AJ_Gap = 1, AJ_SpeakTime = 2 };
 
+enum AudioPlayHow : uint8_t {
+  AP_ConfigMode = 0, /* dfPlay(..., DFPLAYER_PLAY_MODE) */
+  AP_Root,
+  AP_Mp3Folder,
+  AP_Folder,
+};
+
 struct AudioJob {
   AudioJobType type;
+  uint8_t      playHow; /* AudioPlayHow — hanya AJ_PlayTrack */
   uint16_t     a;
   uint16_t     b;
+  uint16_t     c; /* folder: a=folder, b=trek, c=tailMs; lain: a=trek, b=tailMs */
 };
 
 static constexpr uint8_t kAudioQCap = 14;
@@ -48,9 +57,11 @@ enum ExecKind : uint8_t { ExNone = 0, ExGap, ExPlayTrack, ExSpeakTime };
 static ExecKind      execKind   = ExNone;
 static unsigned long phaseStart = 0;
 
-static int     ptTrack = 0;
-static int     ptTail  = 0;
-static uint8_t ptPhase = 0;
+static uint8_t ptPlayHow = AP_ConfigMode;
+static int     ptArg0    = 0;
+static int     ptArg1    = 0;
+static int     ptTail    = 0;
+static uint8_t ptPhase   = 0;
 
 static unsigned gapMs = 0;
 
@@ -62,12 +73,20 @@ static void execFinish() {
   execKind = ExNone;
 }
 
-static void startPlayTrackJob(int track, int tailMs) {
+static void startPlayTrackJob(uint8_t how, int a, int b, int c) {
   execKind   = ExPlayTrack;
   phaseStart = millis();
-  ptTrack    = track;
-  ptTail     = tailMs;
-  ptPhase    = 0;
+  ptPlayHow  = how;
+  if (how == AP_Folder) {
+    ptArg0 = a;
+    ptArg1 = b;
+    ptTail = c;
+  } else {
+    ptArg0 = a;
+    ptArg1 = 0;
+    ptTail = b;
+  }
+  ptPhase = 0;
   utilsDfPlayerSendStop();
 }
 
@@ -110,7 +129,7 @@ static void tryStartNextJob() {
   if (!audioQPop(&j))
     return;
   if (j.type == AJ_PlayTrack)
-    startPlayTrackJob((int)j.a, (int)j.b);
+    startPlayTrackJob(j.playHow, (int)j.a, (int)j.b, (int)j.c);
   else if (j.type == AJ_Gap)
     startGapJob((unsigned)j.a);
   else
@@ -139,7 +158,14 @@ static void appFsmAudioTick() {
       }
     } else if (ptPhase == 1) {
       if (now - phaseStart >= 50UL) {
-        utilsDfPlayerSendPlayIndexed(ptTrack);
+        if (ptPlayHow == AP_ConfigMode)
+          dfPlay(ptArg0, DFPLAYER_PLAY_MODE);
+        else if (ptPlayHow == AP_Root)
+          dfPlay(ptArg0, 1);
+        else if (ptPlayHow == AP_Mp3Folder)
+          dfPlay(ptArg0, 0);
+        else if (ptPlayHow == AP_Folder)
+          dfPlayFolder(ptArg0, ptArg1);
         phaseStart = now;
         ptPhase    = 2;
       }
@@ -165,7 +191,7 @@ static void appFsmAudioTick() {
       }
     } else if (spPhase == 1) {
       if (now - phaseStart >= 50UL) {
-        utilsDfPlayerSendPlayFolder((uint8_t)DFPLAYER_SPEAK_FOLDER_HOUR, (uint8_t)spH12);
+        dfPlay(spH12, 2);
         phaseStart = now;
         spPhase    = 2;
       }
@@ -175,7 +201,7 @@ static void appFsmAudioTick() {
       const bool pastGuard       = elapsed >= (unsigned long)DFPLAYER_BUSY_IGNORE_MS;
       const bool busyTimedOut    = elapsed >= (unsigned long)SPEAK_TIME_MS_AFTER_HOUR;
       if ((pastGuard && utilsDfPlayerOutputIdle()) || busyTimedOut) {
-        utilsDfPlayerSendPlayFolder((uint8_t)DFPLAYER_SPEAK_FOLDER_MINUTE, (uint8_t)spMinTrk);
+        dfPlay(spMinTrk, 3);
         phaseStart = now;
         spPhase    = 3;
       }
@@ -196,22 +222,41 @@ bool appFsmAudioBusy() {
   return execKind != ExNone || qCount > 0;
 }
 
-bool appFsmAudioEnqueuePlay(int track, int tailMs) {
+bool appFsmEnqPlay(int track, int tailMs) {
   if (!dfPlayerReady)
     return false;
-  return audioQPush({ AJ_PlayTrack, (uint16_t)track, (uint16_t)tailMs });
+  return audioQPush({ AJ_PlayTrack, AP_ConfigMode, (uint16_t)track, (uint16_t)tailMs, 0 });
 }
 
-bool appFsmAudioEnqueueGap(unsigned ms) {
+bool appFsmEnqRoot(int track, int tailMs) {
   if (!dfPlayerReady)
     return false;
-  return audioQPush({ AJ_Gap, (uint16_t)ms, 0 });
+  return audioQPush({ AJ_PlayTrack, AP_Root, (uint16_t)track, (uint16_t)tailMs, 0 });
 }
 
-bool appFsmAudioEnqueueSpeakTime(int hours, int minutes) {
+bool appFsmEnqMp3(int track, int tailMs) {
   if (!dfPlayerReady)
     return false;
-  return audioQPush({ AJ_SpeakTime, (uint16_t)hours, (uint16_t)minutes });
+  return audioQPush({ AJ_PlayTrack, AP_Mp3Folder, (uint16_t)track, (uint16_t)tailMs, 0 });
+}
+
+bool appFsmEnqFolder(int folderNumber, int trackInFolder, int tailMs) {
+  if (!dfPlayerReady)
+    return false;
+  return audioQPush({ AJ_PlayTrack, AP_Folder, (uint16_t)folderNumber, (uint16_t)trackInFolder,
+                      (uint16_t)tailMs });
+}
+
+bool appFsmEnqGap(unsigned ms) {
+  if (!dfPlayerReady)
+    return false;
+  return audioQPush({ AJ_Gap, 0, (uint16_t)ms, 0, 0 });
+}
+
+bool appFsmEnqSpeak(int hours, int minutes) {
+  if (!dfPlayerReady)
+    return false;
+  return audioQPush({ AJ_SpeakTime, 0, (uint16_t)hours, (uint16_t)minutes, 0 });
 }
 
 void appFsmInit() {

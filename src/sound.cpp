@@ -26,13 +26,13 @@ static int           lastMusicTick    = -1;
   if (m == 0) {
     switch (HOURLY_CHIME_MODE) {
       case HOURLY_CHIME_MODE_SPEAK_FOLDERS:
-        speakTime(h, m);
+        appFsmEnqSpeak(h, m);
         Serial.printf("[sound] tepat jam %02d:00 (speakTime folders)\n", h);
         break;
 
       case HOURLY_CHIME_MODE_FULL_MUSIC:
       default:
-        playSound(TRACK_SD_FULL_MUSIC, 400);
+        appFsmEnqRoot(TRACK_SD_FULL_MUSIC, 400);
         Serial.printf("[sound] tepat jam %02d:00 trek %d (muzik penuh)\n", h, TRACK_SD_FULL_MUSIC);
         break;
     }
@@ -42,20 +42,20 @@ static int           lastMusicTick    = -1;
     switch (QUARTER_CHIME_MODE) {
       case QUARTER_CHIME_MODE_SPEAK_FOLDERS:
         // Akan menyebut "pukul sepuluh lima belas minit"
-        speakTime(h, m);
+        appFsmEnqSpeak(h, m);
         Serial.printf("[sound] suku jam %02d:%02d (speakTime folders)\n", h, m);
         break;
 
       case QUARTER_CHIME_MODE_SPECIFIC_TRACK:
         // Mainkan trek spesifik untuk suku jam
-        playSound(TRACK_SD_QUARTER_MUSIC, 400);
+        appFsmEnqRoot(TRACK_SD_QUARTER_MUSIC, 400);
         Serial.printf("[sound] suku jam %02d:%02d trek %d (muzik spesifik)\n", h, m, TRACK_SD_QUARTER_MUSIC);
         break;
 
       case QUARTER_CHIME_MODE_SHORT_RANDOM:
       default: {
         int tr = (esp_random() & 1U) ? TRACK_SD_SHORT_B : TRACK_SD_SHORT_A;
-        playSound(tr, 400);
+        appFsmEnqRoot(tr, 400);
         Serial.printf("[sound] suku jam %02d:%02d trek %d (pendek rawak A/B)\n", h, m, tr);
         break;
       }
@@ -105,11 +105,11 @@ void handleSound() {
       if (lastWarnIdx != i) {
         lastWarnIdx = i;
         if (dfPlayerReady) {
-          appFsmAudioEnqueuePlay(TRACK_SD_NOTIFY, 0);
-          appFsmAudioEnqueueGap(500);
-          appFsmAudioEnqueuePlay(TRACK_SD_NOTIFY, 0);
-          appFsmAudioEnqueueGap(500);
-          appFsmAudioEnqueuePlay(TRACK_SD_NOTIFY, 0);
+          appFsmEnqRoot(TRACK_SD_NOTIFY, 0);
+          appFsmEnqGap(500);
+          appFsmEnqRoot(TRACK_SD_NOTIFY, 0);
+          appFsmEnqGap(500);
+          appFsmEnqRoot(TRACK_SD_NOTIFY, 0);
         }
         Serial.printf("[sound] warning 30s: %s\n", times[i]);
       }
@@ -124,17 +124,17 @@ void handleSound() {
       if (!azanBeepDone) {
         azanBeepDone = true;
         if (dfPlayerReady) {
+
 #if AZAN_USE_BEEP_PREAMBLE
-          for (int j = 0; j < AZAN_PLAY_COUNT; j++)
-            playSound(TRACK_SD_BEEP, 120);
-#endif
-          playSound(TRACK_SD_AZAN, 0);
-        }
-#if AZAN_USE_BEEP_PREAMBLE
-        Serial.printf("[sound] beep x%d kemudian azan penuh: %s\n", AZAN_PLAY_COUNT, times[i]);
+          for (int j = 0; j < AZAN_PLAY_COUNT; j++){
+            appFsmEnqRoot(TRACK_SD_BEEP, 0);
+          }
+          Serial.printf("[sound] beep x%d kemudian azan penuh: %s\n", AZAN_PLAY_COUNT, times[i]);
 #else
-        Serial.printf("[sound] azan penuh sahaja: %s\n", times[i]);
+          appFsmEnqRoot(TRACK_SD_AZAN, 0);
+          Serial.printf("[sound] azan penuh sahaja: %s\n", times[i]);
 #endif
+        }
       }
     }
   }

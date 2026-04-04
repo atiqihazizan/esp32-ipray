@@ -1,5 +1,4 @@
 #include "utils.h"
-#include "app_fsm.h"
 #include "config.h"
 #include "secrets.h"
 #include "solat.h"
@@ -16,17 +15,28 @@ bool               dfPlayerReady       = false;
 bool               dfPlayerSdOk        = false;
 int                dfPlayerSdFileCount = -1;
 
-/** Satu arahan main: 0=mp3/ 1=ROOT 2=folder01 */
-static void dfPlayerPlayOneMode(int trackNumber, int mode) {
+/** Satu arahan main DFPlayer: 0=mp3/ 1=ROOT 2=folder jam(01) 3=folder minit(02) */
+void dfPlay(int trackNumber, int mode) {
   switch (mode) {
-    case 1: dfPlayer.play(trackNumber); break;
-    case 2: dfPlayer.playFolder(1, static_cast<uint8_t>(trackNumber)); break;
-    default: dfPlayer.playMp3Folder(trackNumber); break;
+    case 1:
+      dfPlayer.play(trackNumber);
+      break;
+    case 2:
+      dfPlayer.playFolder(DFPLAYER_SPEAK_FOLDER_HOUR, static_cast<uint8_t>(trackNumber));
+      break;
+    case 3:
+      dfPlayer.playFolder(DFPLAYER_SPEAK_FOLDER_MINUTE, static_cast<uint8_t>(trackNumber));
+      break;
+    default:
+      dfPlayer.playMp3Folder(trackNumber);
+      break;
   }
 }
 
-static void dfPlayerPlayIndexedTrack(int trackNumber) {
-  dfPlayerPlayOneMode(trackNumber, DFPLAYER_PLAY_MODE);
+void dfPlayFolder(int folderNumber, int trackInFolder) {
+  uint8_t f = (folderNumber < 1) ? 1 : (folderNumber > 99 ? 99 : (uint8_t)folderNumber);
+  uint8_t t = (trackInFolder < 1) ? 1 : (trackInFolder > 255 ? 255 : (uint8_t)trackInFolder);
+  dfPlayer.playFolder(f, t);
 }
 
 void utilsDfPlayerSendStop() {
@@ -35,14 +45,6 @@ void utilsDfPlayerSendStop() {
 
 void utilsDfPlayerSendVolume(int v) {
   dfPlayer.volume((uint8_t)v);
-}
-
-void utilsDfPlayerSendPlayIndexed(int track) {
-  dfPlayerPlayIndexedTrack(track);
-}
-
-void utilsDfPlayerSendPlayFolder(uint8_t folder, uint8_t file) {
-  dfPlayer.playFolder(folder, file);
 }
 
 bool utilsDfPlayerOutputIdle() {
@@ -90,20 +92,6 @@ void initDfPlayer() {
     dfPlayerSdOk        = false;
     dfPlayerSdFileCount = -1;
   }
-}
-
-void playSound(int trackNumber, int delayMs) {
-  if (!dfPlayerReady)
-    return;
-  if (!appFsmAudioEnqueuePlay(trackNumber, delayMs))
-    Serial.println("[audio] baris gilir penuh — playSound diabaikan");
-}
-
-void speakTime(int hours, int minutes) {
-  if (!dfPlayerReady)
-    return;
-  if (!appFsmAudioEnqueueSpeakTime(hours, minutes))
-    Serial.println("[audio] baris gilir penuh — speakTime diabaikan");
 }
 
 int rightToLen(const char* strText, int charW, int padRight) {

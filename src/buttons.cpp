@@ -1,5 +1,6 @@
 #include "buttons.h"
 #include "sound.h"
+#include "app_fsm.h"
 #include "config.h"
 #include "utils.h"
 
@@ -60,7 +61,7 @@ void handleButtons() {
       }
 
       if (dfPlayerReady && !currentMinuteMatchesAnySolat(rtc.now()))
-        playSound(TRACK_SD_BEEP, 100);
+        appFsmEnqRoot(TRACK_SD_BEEP, 100);
       Serial.printf("[layout] switched to layout %d\n", displayLayout);
     }
   }
