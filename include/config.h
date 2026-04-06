@@ -7,19 +7,27 @@
 #define SCREEN_HEIGHT   64
 #define OLED_RESET      -1
 
-// ─── Pin config ───────────────────────────────────────
-#define BTN_MENU        15
-#define BTN_UP           4
-#define BTN_DOWN        14
-#define BTN_SET         27
-#define BTN_RET          5
+// ─── Pin butang (INPUT_PULLUP, tekan = LOW) ───────────
+// Susunan baharu — sesuaikan pendawaian fizikal dengan nilai di bawah.
+// Elakkan pin yang sudah dipakai: UART2 DFPlayer 16/17, I2C OLED 21/22, BUSY 32.
+#define BTN_MENU        13
+#define BTN_UP          14
+#define BTN_DOWN        25
+#define BTN_SET         26
+#define BTN_RET         27
 #define BTN_LAYOUT      23
 
 // ─── DFPlayer Mini MP3-TF-16P ────────────────────────
 // New pins (alternative):
-#define DFPLAYER_RX       25  // ESP32 RX → DFPlayer TX
-#define DFPLAYER_TX       26  // ESP32 TX → DFPlayer RX
+#define DFPLAYER_RX       16  // ESP32 RX2 → DFPlayer TX
+#define DFPLAYER_TX       17  // ESP32 TX2 → DFPlayer RX
 #define DFPLAYER_BUSY_PIN 32  // ESP32 ← kaki BUSY modul (biasanya GPIO input + pull-up)
+
+/**
+ * GPIO berkaitan main trek melalui playFolder() atau playMp3Folder() (folder bernombor / mp3/).
+ * Contoh: enabler amplifier luar. Tetapkan -1 jika pin tidak digunakan.
+ */
+#define DFPLAYER_PLAY_FOLDER_MP3_PIN  12
 
 /** 1 = pin LOW semasa main audio; 0 = HIGH semasa main (terbalik mengikut modul) */
 #define DFPLAYER_BUSY_ACTIVE_LOW  1
@@ -34,6 +42,12 @@
 // 0 = UART tanpa ACK (sesetengah modul lebih stabil); 1 = dengan ACK
 #define DFPLAYER_USE_ACK     0
 
+/** Tunggu selepas UART begin supaya modul dapati kuasa / siap (cold boot) */
+#define DFPLAYER_BOOT_DELAY_MS         2500
+/** Cuba semula dfPlayer.begin() sebelum isytihar gagal */
+#define DFPLAYER_BEGIN_RETRY_COUNT     12
+#define DFPLAYER_BEGIN_RETRY_DELAY_MS  250
+
 /**
  * speakTime(): DFPlayer playFolder — folder `01` jam, `02` minit.
  * 01/: 001–012.mp3 — RTC 24j → 12j; jam 00 & 12 → 012.mp3 (indeks 12).
@@ -42,8 +56,10 @@
 #define DFPLAYER_SPEAK_FOLDER_HOUR    1
 #define DFPLAYER_SPEAK_FOLDER_MINUTE  2
 /** speakTime: tunggu BUSY idle; nilai ini = had masa maks jika pin tidak bertindak */
-#define SPEAK_TIME_MS_AFTER_HOUR      8000
+#define SPEAK_TIME_MS_AFTER_HOUR      13000
 #define SPEAK_TIME_MS_AFTER_MINUTE    8000
+/** Masa minimum dalam fasa sebutan jam sebelum percaya BUSY idle (elak loncat awal) */
+#define SPEAK_HOUR_BUSY_MIN_MS        500
 
 /** ROOT play(n) — fail di punca SD: 001.mp3 … 006.mp3 */
 #define TRACK_SD_BEEP        1  // beep (startup, layout, dll. — bukan masuk waktu)
@@ -99,7 +115,7 @@ extern const char* solatW[];
 extern const char* hijriOfYear[];
 extern const char* hijriOfYearFull[];
 
-enum State { HOME, MENU, SET_TAKWIM, SET_DATE, SET_TIME, SET_WIFI, SLEEP };
+enum State { HOME, MENU, SET_TAKWIM, SET_DATE, SET_TIME, SET_WIFI, SET_MP3_FOLDERS, SLEEP };
 extern State currentState;
 extern int menuIndex;
 extern const int menuItems;
@@ -138,7 +154,6 @@ extern bool dfPlayerSdOk;
 /** Bilangan fail yang dilapor modul; -1 = ralat/tiada maklumat */
 extern int  dfPlayerSdFileCount;
 
-extern unsigned long lastSolatRetry;
 /** Sela minimum sebelum cuba load/fetch solat semula (ms) */
 #define SOLAT_RETRY_MS 5000UL
 

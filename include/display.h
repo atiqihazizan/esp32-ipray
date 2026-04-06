@@ -13,3 +13,7 @@ void drawMenu();
 void drawSubMenu(const char* title);
 void drawTakwim();
 void handleTakwimInput();
+
+/** Senarai folder bernombor + baris mp3/ (DFPlayer); navigasi seperti Takwim */
+void drawMp3FolderBrowser();
+void handleMp3FolderInput();

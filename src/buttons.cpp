@@ -39,6 +39,8 @@ void handleButtons() {
         currentState = SET_TIME;
       else if (menuIndex == 3)
         currentState = SET_WIFI;
+      else if (menuIndex == 4)
+        currentState = SET_MP3_FOLDERS;
     }
   }
   if (digitalRead(BTN_RET) == LOW) {

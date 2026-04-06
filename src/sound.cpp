@@ -139,11 +139,12 @@ void handleSound() {
     }
   }
 
-  if (!solatMinute && now.second() <= 2 && ((now.minute() % 15) == 0)) {
+  if (now.second() == 0 && (now.minute() % 15) == 0) {
     int tick = now.hour() * 60 + now.minute();
     if (lastMusicTick != tick) {
       lastMusicTick = tick;
-      runQuarterHourChime(now);
+      if (!solatMinute)
+        runQuarterHourChime(now);
     }
   }
 

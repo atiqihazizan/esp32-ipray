@@ -55,9 +55,31 @@ bool utilsDfPlayerOutputIdle() {
 #endif
 }
 
+bool utilsDfPlayerScanNumberedFolders(int* outFolderCount, int* outFilesPerFolder, int maxFolders) {
+  if (!dfPlayerReady || !outFolderCount || !outFilesPerFolder || maxFolders < 1)
+    return false;
+
+  dfPlayer.stop();
+  delay(120);
+
+  int fc = dfPlayer.readFolderCounts();
+  if (fc < 0)
+    fc = 0;
+  if (fc > maxFolders)
+    fc = maxFolders;
+  *outFolderCount = fc;
+
+  for (int i = 1; i <= fc; i++) {
+    int n = dfPlayer.readFileCountsInFolder(i);
+    outFilesPerFolder[i - 1] = (n < 0) ? 0 : n;
+    delay(100);
+  }
+  return true;
+}
+
 void initDfPlayer() {
   dfSerial.begin(9600, SERIAL_8N1, DFPLAYER_RX, DFPLAYER_TX);
-  delay(500);
+  delay(DFPLAYER_BOOT_DELAY_MS);
 
 #if DFPLAYER_USE_ACK
   const bool dfUseAck = true;
@@ -65,7 +87,16 @@ void initDfPlayer() {
   const bool dfUseAck = false;
 #endif
 
-  if (dfPlayer.begin(dfSerial, dfUseAck)) {
+  bool begun = false;
+  for (int attempt = 0; attempt < DFPLAYER_BEGIN_RETRY_COUNT; attempt++) {
+    if (dfPlayer.begin(dfSerial, dfUseAck)) {
+      begun = true;
+      break;
+    }
+    delay(DFPLAYER_BEGIN_RETRY_DELAY_MS);
+  }
+
+  if (begun) {
     dfPlayerReady = true;
     dfPlayerSdOk  = false;
     delay(500);
@@ -75,7 +106,7 @@ void initDfPlayer() {
     dfPlayer.EQ(DFPLAYER_EQ_NORMAL);
     delay(150);
     dfPlayer.outputDevice(DFPLAYER_DEVICE_SD);
-    delay(150);
+    delay(500);
     /* Jangan guna start() di sini — ia boleh picu main sebelum masa; stop() matikan autoplay selepas reset */
     dfPlayer.stop();
     delay(250);
@@ -129,78 +160,6 @@ void showInitializing(int dots) {
   }
 
   display.display();
-}
-
-void connectWiFi() {
-  WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
-  Serial.print("[wifi] connecting");
-  unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000UL) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println();
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("[wifi] connected, IP: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println("[wifi] timeout — will retry in loop");
-  }
-}
-
-void syncRTCwithNTP() {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[ntp] skip — no WiFi");
-    return;
-  }
-
-  configTime(8 * 3600, 0, "pool.ntp.org", "time.nist.gov");
-
-  Serial.print("[ntp] syncing");
-  struct tm timeinfo;
-  int retry = 0;
-  while (!getLocalTime(&timeinfo) && retry < 20) {
-    delay(500);
-    Serial.print(".");
-    retry++;
-  }
-  Serial.println();
-
-  if (retry >= 20) {
-    Serial.println("[ntp] sync failed, using RTC as-is");
-    return;
-  }
-
-  rtc.adjust(DateTime(
-    timeinfo.tm_year + 1900,
-    timeinfo.tm_mon  + 1,
-    timeinfo.tm_mday,
-    timeinfo.tm_hour,
-    timeinfo.tm_min,
-    timeinfo.tm_sec
-  ));
-
-  Serial.printf("[ntp] RTC updated: %04d-%02d-%02d %02d:%02d:%02d\n",
-    timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
-    timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-}
-
-// ─── Solat semula ───────────────────────────────────────
-
-void handleSolatRetry(){
-  if (solatLoaded) return;
-  if (strlen(savedZone) == 0) return;
-  if (millis() - lastSolatRetry < SOLAT_RETRY_MS) return;
-
-  lastSolatRetry = millis();
-  loadSolatFromPrefs(savedZone);
-
-  if (!solatLoaded && WiFi.status() == WL_CONNECTED) {
-    fetchAndSaveSolat(savedZone);
-  } else if (!solatLoaded && WiFi.status() != WL_CONNECTED) {
-    Serial.println("[wifi] disconnected, reconnecting...");
-    connectWiFi();
-  }
 }
 
 // ─── Hijri helpers ────────────────────────────────────

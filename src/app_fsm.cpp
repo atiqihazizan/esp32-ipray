@@ -68,6 +68,7 @@ static unsigned gapMs = 0;
 static int     spH12    = 1;
 static int     spMinTrk = 0;
 static uint8_t spPhase  = 0;
+static bool    spHourBusySeen = false;
 
 static void execFinish() {
   execKind = ExNone;
@@ -117,6 +118,7 @@ static void startSpeakTimeJob(int hours, int minutes) {
   spH12      = h12;
   spMinTrk   = minTr;
   spPhase    = 0;
+  spHourBusySeen = false;
   utilsDfPlayerSendStop();
 }
 
@@ -196,11 +198,18 @@ static void appFsmAudioTick() {
         spPhase    = 2;
       }
     } else if (spPhase == 2) {
-      /* Tunggu trek jam habis: pin BUSY idle, atau timeout */
+      /* Tunggu trek jam habis: pernah nampak BUSY aktif, kemudian idle — atau timeout */
       const unsigned long elapsed = now - phaseStart;
-      const bool pastGuard       = elapsed >= (unsigned long)DFPLAYER_BUSY_IGNORE_MS;
-      const bool busyTimedOut    = elapsed >= (unsigned long)SPEAK_TIME_MS_AFTER_HOUR;
-      if ((pastGuard && utilsDfPlayerOutputIdle()) || busyTimedOut) {
+      if (!utilsDfPlayerOutputIdle())
+        spHourBusySeen = true;
+      unsigned long idleAfterMs = (unsigned long)DFPLAYER_BUSY_IGNORE_MS;
+      if ((unsigned long)SPEAK_HOUR_BUSY_MIN_MS > idleAfterMs)
+        idleAfterMs = (unsigned long)SPEAK_HOUR_BUSY_MIN_MS;
+      const bool pastGuard    = elapsed >= idleAfterMs;
+      const bool busyTimedOut = elapsed >= (unsigned long)SPEAK_TIME_MS_AFTER_HOUR;
+      const bool canAdvance =
+          busyTimedOut || (pastGuard && spHourBusySeen && utilsDfPlayerOutputIdle());
+      if (canAdvance) {
         dfPlay(spMinTrk, 3);
         phaseStart = now;
         spPhase    = 3;

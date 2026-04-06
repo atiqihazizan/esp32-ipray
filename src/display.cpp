@@ -1,4 +1,5 @@
 #include "display.h"
+#include "app_fsm.h"
 #include "config.h"
 #include "utils.h"
 #include "solat.h"
@@ -662,5 +663,98 @@ void handleTakwimInput()
       delay(200);
       takwimSubMode = 0; // kembali ke senarai zon
     }
+  }
+}
+
+// ─── Pelayar folder SD / mp3 (DFPlayer) ─────────────────
+static constexpr int kMp3BrowseMaxFolders = 99;
+static int           mp3BrowseNumFolders  = 0;
+static int           mp3BrowseFileCounts[kMp3BrowseMaxFolders];
+static int           mp3BrowseSel         = 0;
+static bool          mp3BrowseScanPending = true;
+static State         mp3BrowseStatePrev   = HOME;
+
+void drawMp3FolderBrowser() {
+  if (currentState == SET_MP3_FOLDERS && mp3BrowseStatePrev != SET_MP3_FOLDERS) {
+    mp3BrowseSel         = 0;
+    mp3BrowseScanPending = true;
+  }
+  mp3BrowseStatePrev = currentState;
+
+  if (mp3BrowseScanPending) {
+    if (dfPlayerReady) {
+      utilsDfPlayerScanNumberedFolders(&mp3BrowseNumFolders, mp3BrowseFileCounts, kMp3BrowseMaxFolders);
+    } else {
+      mp3BrowseNumFolders = 0;
+    }
+    mp3BrowseScanPending = false;
+  }
+
+  initDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("FOLDER SD (DFPlayer)");
+
+  if (!dfPlayerReady) {
+    display.setCursor(0, 20);
+    display.println("Modul MP3 tidak");
+    display.setCursor(0, 30);
+    display.println("sedia / SD gagal.");
+  } else {
+    int totalLines = 1 + mp3BrowseNumFolders;
+    if (totalLines < 1)
+      totalLines = 1;
+    if (mp3BrowseSel >= totalLines)
+      mp3BrowseSel = totalLines - 1;
+
+    for (int row = 0; row < 4; row++) {
+      int idx = mp3BrowseSel + row;
+      if (idx >= totalLines)
+        break;
+      display.setCursor(0, 12 + row * 11);
+      display.print(idx == mp3BrowseSel ? "> " : "  ");
+      if (idx == 0) {
+        display.print("mp3/");
+      } else {
+        char line[22];
+        snprintf(line, sizeof(line), "%02d  (%d fail)", idx, mp3BrowseFileCounts[idx - 1]);
+        display.print(line);
+      }
+    }
+  }
+
+  display.setCursor(0, 56);
+  display.print("UP/DN  SET:cuba RET");
+  display.display();
+}
+
+void handleMp3FolderInput() {
+  if (currentState != SET_MP3_FOLDERS)
+    return;
+
+  const int totalLines = 1 + mp3BrowseNumFolders;
+
+  if (digitalRead(BTN_UP) == LOW) {
+    delay(200);
+    if (mp3BrowseSel > 0)
+      mp3BrowseSel--;
+  }
+  if (digitalRead(BTN_DOWN) == LOW) {
+    delay(200);
+    if (totalLines > 0 && mp3BrowseSel < totalLines - 1)
+      mp3BrowseSel++;
+  }
+  if (digitalRead(BTN_SET) == LOW) {
+    delay(200);
+    if (dfPlayerReady) {
+      if (mp3BrowseSel == 0)
+        appFsmEnqMp3(1, 500);
+      else
+        appFsmEnqFolder(mp3BrowseSel, 1, 500);
+    }
+  }
+  if (digitalRead(BTN_RET) == LOW) {
+    delay(200);
+    currentState = MENU;
   }
 }
